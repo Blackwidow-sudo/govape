@@ -23,8 +23,12 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/blackwidow-sudo/govape/calculators/base"
+	"github.com/blackwidow-sudo/govape/validation"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,7 +47,86 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		model := struct {
+			HaveNicotine string
+			WantNicotine string
+			WantQuantity string
+			WantPG       string
+			WantVG       string
+			WantAroma    string
+		}{}
+
+		form := huh.NewForm(
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Used Nicotine").
+					Prompt("mg/ml: ").
+					Value(&model.HaveNicotine).
+					Validate(validation.IsFloat),
+				huh.NewInput().
+					Title("Desired Nicotine").
+					Prompt("mg/ml: ").
+					Value(&model.WantNicotine).
+					Validate(validation.IsFloat),
+				huh.NewInput().
+					Title("Desired Aroma").
+					Prompt("%: ").
+					Value(&model.WantAroma).
+					Validate(validation.IsFloat),
+			),
+			huh.NewGroup(
+				huh.NewInput().
+					Title("Desired Volume").
+					Prompt("ml: ").
+					Value(&model.WantQuantity).
+					Validate(validation.IsFloat),
+				huh.NewInput().
+					Title("Desired PG").
+					Prompt("%: ").
+					Value(&model.WantPG).
+					Validate(validation.IsFloat),
+				huh.NewInput().
+					Title("Desired VG").
+					Prompt("%: ").
+					Value(&model.WantVG).
+					Validate(validation.IsFloat),
+			),
+		)
+
+		if err := form.Run(); err != nil {
+			switch err {
+			case huh.ErrUserAborted:
+				os.Exit(0)
+			default:
+				log.Fatal(err)
+			}
+		}
+
+		inputs := base.Inputs{
+			HaveNicotine: toFloat(model.HaveNicotine),
+			WantNicotine: toFloat(model.WantNicotine),
+			WantQuantity: toFloat(model.WantQuantity),
+			WantPG:       toFloat(model.WantPG),
+			WantVG:       toFloat(model.WantVG),
+			WantAroma:    toFloat(model.WantAroma),
+		}
+
+		recipe, err := inputs.Calculate()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tbl := renderTable("Recipe", [][]string{
+			{"Quantity", fmt.Sprintf("%.2fml", recipe.Quantity)},
+			{"NicotineBase", fmt.Sprintf("%.2fml", recipe.NicotineBase)},
+			{"Aroma", fmt.Sprintf("%.2fml", recipe.Aroma)},
+			{"PG", fmt.Sprintf("%.2fml", recipe.PG)},
+			{"VG", fmt.Sprintf("%.2fml", recipe.VG)},
+		})
+
+		fmt.Println(tbl)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
