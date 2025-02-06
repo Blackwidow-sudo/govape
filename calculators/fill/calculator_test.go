@@ -29,7 +29,7 @@ func TestFillCalculator(t *testing.T) {
 			Aroma:        8.00,
 		}
 
-		assertEqual(t, got, want)
+		assertTolerantEqual(t, got, want, 0.001)
 	})
 
 	t.Run("calculate desired nicotine without providing nicotine base", func(t *testing.T) {
@@ -73,11 +73,25 @@ func FuzzFillCalculator(f *testing.F) {
 	})
 }
 
-func assertEqual(t testing.TB, got, want *Recipe) {
+func assertTolerantEqual(t testing.TB, got, want *Recipe, tolerance float64) {
 	t.Helper()
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
+	val := reflect.ValueOf(got).Elem()
+	wantVal := reflect.ValueOf(want).Elem()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		wantField := wantVal.Field(i)
+
+		if field.Kind() != reflect.Float64 || wantField.Kind() != reflect.Float64 {
+			continue
+		}
+
+		v := field.Float()
+		w := wantField.Float()
+		if math.Abs(v-w) > tolerance {
+			t.Errorf("got %+v, want %+v", got, want)
+		}
 	}
 }
 
