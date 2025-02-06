@@ -17,7 +17,7 @@ import (
 // fillCmd represents the fill command
 var fillCmd = &cobra.Command{
 	Use:   "fill",
-	Short: "A brief description of your command",
+	Short: "How much aroma & nicotine to add to N ml of available VPG",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
